@@ -92,6 +92,42 @@ class LogitsProcessorList(list):
                 scores = processor(input_ids, scores)
         return scores
 
+class NNLogitsProcessor(LogitsProcessor):
+    r"""
+    [`LogitsProcessor`] weighting logits by nearest neighbor retrieval results
+
+    Args:
+        k (`int`):
+            The number of neighbors to retrieve for nearest neighbor translation
+        lam (`float`):
+            The lambda value used to interpolate 
+    """
+    def __init__(self, k: int, lam: float):
+        if not isinstance(k, int) or k < 0:
+            raise ValueError(f"`k` has to be a non-negative integer, but is {k}")
+        if lam < 0 or lam > 1:
+            raise ValueError(f"Interpolation parameter `lam` must be between 0 and 1, but is {lam}")
+        self.k = k
+        self.lam = lam
+    
+    def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor, final_hidden_state: torch.FloatTensor) -> torch.FloatTensor:
+        """
+        Args:
+            input_ids (`torch.LongTensor`):
+                Vocab ids of partially generated output sequence -- `torch.LongTensor` 
+                of shape (batch_size x generated_length)
+            scores (`torch.FloatTensor`):
+                Next token logits over the vocabulary -- `torch.FloatTensor` of shape
+                (batch_size x vocab_size)
+            final_hidden_state (`torch.FloatTensor`):
+                Last layer decoder hidden state output at last generation step -- 
+                `torch.FloatTensor` of shape (batch_size x 1 x hidden_dim)
+        """
+        cur_len = input_ids.shape[-1]
+        print(input_ids.shape, scores.shape, final_hidden_state.shape)
+        if cur_len < 5:
+            scores[:, 6325] = 1e6
+        return scores
 
 class MinLengthLogitsProcessor(LogitsProcessor):
     r"""

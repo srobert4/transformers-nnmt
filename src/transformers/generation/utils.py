@@ -2345,7 +2345,11 @@ class GenerationMixin:
             next_token_logits = outputs.logits[:, -1, :]
 
             # pre-process distribution
-            next_tokens_scores = logits_processor(input_ids, next_token_logits)
+            if not outputs.decoder_hidden_states:
+                print(outputs.keys())
+                next_tokens_scores = logits_processor(input_ids, next_token_logits, final_hidden_state = torch.ones((1,1)))
+            else:
+                next_tokens_scores = logits_processor(input_ids, next_token_logits, final_hidden_state = outputs.decoder_hidden_states[-1])
 
             # Store scores, attentions and hidden_states when required
             if return_dict_in_generate:

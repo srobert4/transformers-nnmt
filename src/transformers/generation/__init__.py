@@ -52,6 +52,7 @@ else:
         "LogitsWarper",
         "MinLengthLogitsProcessor",
         "MinNewTokensLengthLogitsProcessor",
+        "NNLogitsProcessor",
         "NoBadWordsLogitsProcessor",
         "NoRepeatNGramLogitsProcessor",
         "PrefixConstrainedLogitsProcessor",
