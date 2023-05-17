@@ -111,7 +111,8 @@ class NNLogitsProcessor(LogitsProcessor):
                  index, # Callable[[np.ndarray, int], tuple[np.ndarray,np.ndarray]] 
                  k: int = 64, 
                  lam: float = 0.6, 
-                 temp: int = 10):
+                 temp: int = 10,
+                 log_softmax: bool = False):
         if not isinstance(k, int) or k < 0:
             raise ValueError(f"`k` has to be a non-negative integer, but is {k}")
         if lam < 0 or lam > 1:
@@ -120,33 +121,46 @@ class NNLogitsProcessor(LogitsProcessor):
         self.lam = lam
         self.temp = temp
         self.index_func = index
+        self.log_softmax = log_softmax
     
     def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor, final_hidden_state: torch.FloatTensor) -> torch.FloatTensor:
         """
         Args:
             input_ids (`torch.LongTensor`):
                 Vocab ids of partially generated output sequence -- `torch.LongTensor` 
-                of shape (batch_size x generated_length)
+                of shape (batch_size x num_beams) x generated_length)
             scores (`torch.FloatTensor`):
                 Next token logits over the vocabulary -- `torch.FloatTensor` of shape
-                (batch_size x vocab_size)
+                ((batch_size x num_beams) x vocab_size)
             final_hidden_state (`torch.FloatTensor`):
                 Last layer decoder hidden state output at last generation step -- 
-                `torch.FloatTensor` of shape (batch_size x 1 x hidden_dim)
+                `torch.FloatTensor` of shape ((batch_size x num_beams) x 1 x hidden_dim)
         """
         # search index for entries close to final hidden state
-        # vocab_idxs, distances both have shape (batch_size x self.k)
-        # print(scores.shape)
+        # vocab_idxs, distances both have shape ((batch_size x num_beams) x self.k)    
+        num_seqs = input_ids.shape[0]
         search_embeddings = final_hidden_state.detach().reshape(final_hidden_state.shape[0], final_hidden_state.shape[-1]).numpy()
-        # print(search_embeddings.shape)
         vocab_idxs, distances = self.index_func(search_embeddings, self.k)
-        # get logits over tokens retrieved
-        knn_scores = torch.ones(scores.shape) * -float("inf")
-        I = np.arange(distances.shape[0])[:, np.newaxis]
-        knn_scores[I, vocab_idxs] = -1 * torch.Tensor(distances) / self.temp
-        knn_scores = torch.nn.functional.softmax(knn_scores, dim=1)
+       
+        # get logits over tokens retrieved  
+        # take softmax and aggregate probabilities
+        distances = -1 * torch.from_numpy(distances) / self.temp
+        distances = torch.nn.functional.softmax(distances, dim = 1)
+        distance_logits = np.zeros(scores.shape)
+        for seq in range(num_seqs):
+            for neighbor in range(self.k):
+                distance_logits[seq, vocab_idxs[seq, neighbor]] += distances[seq, neighbor]
 
-        return self.lam * knn_scores + (1-self.lam) * scores
+        # Take log of aggregated distance probabilities
+        if self.log_softmax:
+            knn_scores = np.ones(scores.shape) * -10000#-float("inf")
+            np.log(distance_logits, out = knn_scores, where = distance_logits != 0)
+        else:
+            knn_scores = distance_logits
+        knn_scores = torch.from_numpy(knn_scores)
+
+        final_scores = self.lam * knn_scores + (1-self.lam) * scores
+        return final_scores
 
 class MinLengthLogitsProcessor(LogitsProcessor):
     r"""
