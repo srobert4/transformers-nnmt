@@ -138,6 +138,10 @@ class NNLogitsProcessor(LogitsProcessor):
         """
         # search index for entries close to final hidden state
         # vocab_idxs, distances both have shape ((batch_size x num_beams) x self.k)    
+        # print(final_hidden_state.shape)
+        if self.lam == 0:
+            return scores
+        
         num_seqs = input_ids.shape[0]
         search_embeddings = final_hidden_state.detach().reshape(final_hidden_state.shape[0], final_hidden_state.shape[-1]).numpy()
         vocab_idxs, distances = self.index_func(search_embeddings, self.k)
@@ -158,8 +162,11 @@ class NNLogitsProcessor(LogitsProcessor):
         else:
             knn_scores = distance_logits
         knn_scores = torch.from_numpy(knn_scores)
-
+        
         final_scores = self.lam * knn_scores + (1-self.lam) * scores
+        final_scores = torch.nan_to_num(final_scores, nan=-float("inf"))
+
+        # print(scores.shape, final_scores.shape)
         return final_scores
 
 class MinLengthLogitsProcessor(LogitsProcessor):
