@@ -160,7 +160,7 @@ class NNLogitsProcessor(LogitsProcessor):
                 distance_logits[seq, vocab_idxs[seq, neighbor]] += distances[seq, neighbor]
 
         # Take log of aggregated distance probabilities
-        if self.log_softmax:
+        if log_softmax:
             scores = torch.exp(scores)
             # print(scores.sum(axis=1))
             # knn_scores = np.ones(scores.shape) * -10000#-float("inf")
@@ -173,7 +173,7 @@ class NNLogitsProcessor(LogitsProcessor):
         
         final_scores = self.lam * knn_scores + (1-self.lam) * scores
         # print(final_scores.sum(axis=1))
-        if self.log_softmax:
+        if log_softmax:
             log_final_scores = np.ones(scores.shape) * -float("inf")
             np.log(final_scores, out=log_final_scores, where=final_scores!=0)
             return torch.from_numpy(log_final_scores)
