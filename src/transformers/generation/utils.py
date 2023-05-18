@@ -1270,12 +1270,10 @@ class GenerationMixin:
         logits_processor = logits_processor if logits_processor is not None else LogitsProcessorList()
         stopping_criteria = stopping_criteria if stopping_criteria is not None else StoppingCriteriaList()
 
+        nearest_neighbor_search = False
         for processor in logits_processor:
-            if type(processor) == NNLogitsProcessor and not (generation_config.return_dict_in_generate and generation_config.output_hidden_states):
-                raise ValueError(
-                    f"Using nearest neighbor LogitsProcessor, but return_dict_in_generate is {generation_config.return_dict_in_generate} "
-                    f"and output_hidden_states is {generation_config.output_hidden_states}. Both must be True to use this LogitsProcessor."
-                )
+            if type(processor) == NNLogitsProcessor:
+                nearest_neighbor_search = True
 
         if generation_config.pad_token_id is None and generation_config.eos_token_id is not None:
             if model_kwargs.get("attention_mask", None) is None:
@@ -1382,6 +1380,12 @@ class GenerationMixin:
                 " increasing `max_new_tokens`."
             )
 
+        if nearest_neighbor_search and not (generation_config.return_dict_in_generate and generation_config.output_hidden_states):
+            raise ValueError(
+                f"Using nearest neighbor LogitsProcessor, but return_dict_in_generate is {generation_config.return_dict_in_generate} "
+                f"and output_hidden_states is {generation_config.output_hidden_states}. Both must be True to use this LogitsProcessor."
+            )
+
         # 7. determine generation mode
         is_constraint_gen_mode = (
             generation_config.constraints is not None or generation_config.force_words_ids is not None
@@ -1449,6 +1453,11 @@ class GenerationMixin:
         if streamer is not None and (generation_config.num_beams > 1):
             raise ValueError(
                 "`streamer` cannot be used with beam search (yet!). Make sure that `num_beams` is set to 1."
+            )
+
+        if nearest_neighbor_search and not (is_beam_gen_mode or is_greedy_gen_mode):
+            raise ValueError(
+                "Nearest neighbor generation can only be used with beam search or greedy search."
             )
 
         if self.device.type != input_ids.device.type:
@@ -2359,7 +2368,13 @@ class GenerationMixin:
             else:
                 # print(outputs.decoder_hidden_states[-1].shape)
                 # print(outputs.decoder_hidden_states[-1][:,-1,:].shape)
-                next_tokens_scores = logits_processor(input_ids, next_token_logits, final_hidden_state = outputs.decoder_hidden_states[-1][:,-1,:])
+                last_token_hidden_state = outputs.decoder_hidden_states[-1][:,-1,:]
+                next_tokens_scores = logits_processor(
+                    input_ids, 
+                    next_token_logits, 
+                    final_hidden_state = last_token_hidden_state,
+                    log_softmax = False 
+                )
 
             # Store scores, attentions and hidden_states when required
             if return_dict_in_generate:
@@ -2942,7 +2957,13 @@ class GenerationMixin:
             else:
                 # print(outputs.decoder_hidden_states[-1].shape)
                 # print(outputs.decoder_hidden_states[-1][:,-1,:].shape)
-                next_token_scores_processed = logits_processor(input_ids, next_token_scores, final_hidden_state = outputs.decoder_hidden_states[-1][:,-1,:])
+                last_token_hidden_state = outputs.decoder_hidden_states[-1][:,-1,:]
+                next_token_scores_processed = logits_processor(
+                    input_ids, 
+                    next_token_scores, 
+                    final_hidden_state = last_token_hidden_state,
+                    log_softmax = True 
+                )
 
             
             # next_token_scores_processed = logits_processor(input_ids, next_token_scores)

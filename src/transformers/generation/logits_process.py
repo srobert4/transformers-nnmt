@@ -111,8 +111,7 @@ class NNLogitsProcessor(LogitsProcessor):
                  index, # Callable[[np.ndarray, int], tuple[np.ndarray,np.ndarray]] 
                  k: int = 64, 
                  lam: float = 0.6, 
-                 temp: int = 10,
-                 log_softmax: bool = False):
+                 temp: int = 10):
         if not isinstance(k, int) or k < 0:
             raise ValueError(f"`k` has to be a non-negative integer, but is {k}")
         if lam < 0 or lam > 1:
@@ -121,9 +120,12 @@ class NNLogitsProcessor(LogitsProcessor):
         self.lam = lam
         self.temp = temp
         self.index_func = index
-        self.log_softmax = log_softmax
     
-    def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor, final_hidden_state: torch.FloatTensor) -> torch.FloatTensor:
+    def __call__(self, 
+                 input_ids: torch.LongTensor, 
+                 scores: torch.FloatTensor, 
+                 final_hidden_state: torch.FloatTensor,
+                 log_softmax: bool) -> torch.FloatTensor:
         """
         Args:
             input_ids (`torch.LongTensor`):
@@ -135,6 +137,8 @@ class NNLogitsProcessor(LogitsProcessor):
             final_hidden_state (`torch.FloatTensor`):
                 Last layer decoder hidden state output at last generation step -- 
                 `torch.FloatTensor` of shape ((batch_size x num_beams) x 1 x hidden_dim)
+            log_softmax (`bool`):
+                Whether to return log softmax scores. If false, return softmax logits.
         """
         # search index for entries close to final hidden state
         # vocab_idxs, distances both have shape ((batch_size x num_beams) x self.k)    
