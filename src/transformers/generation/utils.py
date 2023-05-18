@@ -2928,7 +2928,16 @@ class GenerationMixin:
                 next_token_logits, dim=-1
             )  # (batch_size * num_beams, vocab_size)
 
-            next_token_scores_processed = logits_processor(input_ids, next_token_scores, final_hidden_state = outputs.decoder_hidden_states[-1][:,-1,:])
+            if not outputs.decoder_hidden_states:
+                # TODO: customize and raise error if user forgot to specify 
+                # return_dict_in_generate=True and output_hidden_states=True
+                next_token_scores_processed = logits_processor(input_ids, next_token_scores, final_hidden_state = torch.ones(1,1))
+            else:
+                # print(outputs.decoder_hidden_states[-1].shape)
+                # print(outputs.decoder_hidden_states[-1][:,-1,:].shape)
+                next_token_scores_processed = logits_processor(input_ids, next_token_scores, final_hidden_state = outputs.decoder_hidden_states[-1][:,-1,:])
+
+            
             # next_token_scores_processed = logits_processor(input_ids, next_token_scores)
             next_token_scores = next_token_scores_processed + beam_scores[:, None].expand_as(next_token_scores)
 
