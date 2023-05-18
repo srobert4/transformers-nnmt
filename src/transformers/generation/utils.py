@@ -52,6 +52,7 @@ from .logits_process import (
     LogitsProcessorList,
     MinLengthLogitsProcessor,
     MinNewTokensLengthLogitsProcessor,
+    NNLogitsProcessor,
     NoBadWordsLogitsProcessor,
     NoRepeatNGramLogitsProcessor,
     PrefixConstrainedLogitsProcessor,
@@ -1235,7 +1236,6 @@ class GenerationMixin:
                     - [`~generation.BeamSearchEncoderDecoderOutput`],
                     - [`~generation.BeamSampleEncoderDecoderOutput`]
         """
-
         if synced_gpus is None:
             if is_deepspeed_zero3_enabled() and dist.get_world_size() > 1:
                 synced_gpus = True
@@ -1269,6 +1269,13 @@ class GenerationMixin:
         # 2. Set generation parameters if not already defined
         logits_processor = logits_processor if logits_processor is not None else LogitsProcessorList()
         stopping_criteria = stopping_criteria if stopping_criteria is not None else StoppingCriteriaList()
+
+        for processor in logits_processor:
+            if type(processor) == NNLogitsProcessor and not (generation_config.return_dict_in_generate and generation_config.output_hidden_states):
+                raise ValueError(
+                    f"Using nearest neighbor LogitsProcessor, but return_dict_in_generate is {generation_config.return_dict_in_generate} "
+                    f"and output_hidden_states is {generation_config.output_hidden_states}. Both must be True to use this LogitsProcessor."
+                )
 
         if generation_config.pad_token_id is None and generation_config.eos_token_id is not None:
             if model_kwargs.get("attention_mask", None) is None:
