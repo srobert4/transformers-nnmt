@@ -154,7 +154,9 @@ class NNLogitsProcessor(LogitsProcessor):
        
         # get logits over tokens retrieved  
         # take softmax and aggregate probabilities
-        distances = -1 * torch.from_numpy(distances) / self.temp
+        if isinstance(distances, np.ndarray): 
+            distances = torch.from_numpy(distances) # TODO: may need to move to device?
+        distances = -1 * distances / self.temp
         distances = torch.nn.functional.softmax(distances, dim = 1)
         distance_logits = np.zeros(scores.shape)
         for seq in range(num_seqs):
