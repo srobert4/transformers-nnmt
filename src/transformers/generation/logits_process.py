@@ -147,7 +147,9 @@ class NNLogitsProcessor(LogitsProcessor):
             return scores
         
         num_seqs = input_ids.shape[0]
-        search_embeddings = final_hidden_state.detach().reshape(final_hidden_state.shape[0], final_hidden_state.shape[-1]).numpy()
+        search_embeddings = final_hidden_state.detach().reshape(
+            final_hidden_state.shape[0], final_hidden_state.shape[-1]
+        )#.cpu().numpy()
         vocab_idxs, distances = self.index_func(search_embeddings, self.k)
        
         # get logits over tokens retrieved  
