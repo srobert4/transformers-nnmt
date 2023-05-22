@@ -180,7 +180,7 @@ class NNLogitsProcessor(LogitsProcessor):
         final_scores = self.lam * knn_scores + (1-self.lam) * scores
         # print(final_scores.sum(axis=1))
         if log_softmax:
-            log_final_scores = torch.ones(scores.shape) * -float("inf")
+            log_final_scores = torch.ones(scores.shape).to(final_scores.device) * -float("inf")
             torch.log(final_scores, out=log_final_scores)#, where=final_scores!=0)
             return log_final_scores#torch.from_numpy(log_final_scores)
         # print(scores.shape, final_scores.shape)
