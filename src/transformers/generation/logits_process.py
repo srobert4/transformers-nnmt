@@ -158,7 +158,7 @@ class NNLogitsProcessor(LogitsProcessor):
             distances = torch.from_numpy(distances) # TODO: may need to move to device?
         distances = -1 * distances / self.temp
         distances = torch.nn.functional.softmax(distances, dim = 1)
-        distance_logits = torch.zeros(scores.shape)
+        distance_logits = torch.zeros(scores.shape).to(vocab_idxs.device)
         for seq in range(num_seqs):
             for neighbor in range(self.k):
                 distance_logits[seq, vocab_idxs[seq, neighbor]] += distances[seq, neighbor]
@@ -174,14 +174,15 @@ class NNLogitsProcessor(LogitsProcessor):
         # knn_scores = torch.from_numpy(knn_scores)
         # knn_scores = torch.from_numpy(distance_logits)
         # knn_scores = torch.from_numpy(distance_logits)
+        knn_scores = distance_logits.to(scores.device)
         # print(knn_scores.sum(axis=1))
         
-        final_scores = self.lam * distance_logits + (1-self.lam) * scores
+        final_scores = self.lam * knn_scores + (1-self.lam) * scores
         # print(final_scores.sum(axis=1))
         if log_softmax:
-            log_final_scores = np.ones(scores.shape) * -float("inf")
-            np.log(final_scores, out=log_final_scores, where=final_scores!=0)
-            return torch.from_numpy(log_final_scores)
+            log_final_scores = torch.ones(scores.shape) * -float("inf")
+            torch.log(final_scores, out=log_final_scores)#, where=final_scores!=0)
+            return log_final_scores#torch.from_numpy(log_final_scores)
         # print(scores.shape, final_scores.shape)
         return final_scores
 
