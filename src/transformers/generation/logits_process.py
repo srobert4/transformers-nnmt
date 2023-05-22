@@ -155,7 +155,9 @@ class NNLogitsProcessor(LogitsProcessor):
         # get logits over tokens retrieved  
         # take softmax and aggregate probabilities
         if isinstance(distances, np.ndarray): 
-            distances = torch.from_numpy(distances) # TODO: may need to move to device?
+            distances = torch.from_numpy(distances)
+        if isinstance(vocab_idxs, np.ndarray): 
+            vocab_idxs = torch.from_numpy(vocab_idxs)
         distances = -1 * distances / self.temp
         distances = torch.nn.functional.softmax(distances, dim = 1)
         distance_logits = torch.zeros(scores.shape).to(vocab_idxs.device)
@@ -180,9 +182,7 @@ class NNLogitsProcessor(LogitsProcessor):
         final_scores = self.lam * knn_scores + (1-self.lam) * scores
         # print(final_scores.sum(axis=1))
         if log_softmax:
-            log_final_scores = torch.ones(scores.shape).to(final_scores.device) * -float("inf")
-            torch.log(final_scores, out=log_final_scores)#, where=final_scores!=0)
-            return log_final_scores#torch.from_numpy(log_final_scores)
+            return torch.log(final_scores)
         # print(scores.shape, final_scores.shape)
         return final_scores
 

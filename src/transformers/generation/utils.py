@@ -2951,8 +2951,7 @@ class GenerationMixin:
             )  # (batch_size * num_beams, vocab_size)
 
             if not outputs.decoder_hidden_states:
-                # TODO: customize and raise error if user forgot to specify 
-                # return_dict_in_generate=True and output_hidden_states=True
+                # TODO: fix this logic to only pass logits if using nn translation... or another fix here
                 next_token_scores_processed = logits_processor(input_ids, next_token_scores)
             else:
                 # print(outputs.decoder_hidden_states[-1].shape)
@@ -2960,9 +2959,9 @@ class GenerationMixin:
                 last_token_hidden_state = outputs.decoder_hidden_states[-1][:,-1,:]
                 next_token_scores_processed = logits_processor(
                     input_ids, 
-                    next_token_scores, 
+                    next_token_logits, 
                     final_hidden_state = last_token_hidden_state,
-                    log_softmax = True 
+                    log_softmax = False 
                 )
 
             
