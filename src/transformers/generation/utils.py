@@ -2366,8 +2366,10 @@ class GenerationMixin:
                 # return_dict_in_generate=True and output_hidden_states=True
                 next_tokens_scores = logits_processor(input_ids, next_token_logits)
             else:
+                # print(len(outputs.decoder_hidden_states))
                 # print(outputs.decoder_hidden_states[-1].shape)
                 # print(outputs.decoder_hidden_states[-1][:,-1,:].shape)
+                # print(outputs.decoder_hidden_states[-1][:,-1,:].sum(dim=1))
                 last_token_hidden_state = outputs.decoder_hidden_states[-1][:,-1,:]
                 next_tokens_scores = logits_processor(
                     input_ids, 
@@ -2396,6 +2398,8 @@ class GenerationMixin:
 
             # argmax
             next_tokens = torch.argmax(next_tokens_scores, dim=-1)
+            # print("selected token: ", next_tokens)
+            # print()
 
             # finished sentences should have their next token be a padding token
             if eos_token_id is not None:
@@ -2957,8 +2961,10 @@ class GenerationMixin:
                 # TODO: fix this logic to only pass logits if using nn translation... or another fix here
                 next_token_scores_processed = logits_processor(input_ids, next_token_scores)
             else:
+                # print(len(outputs.decoder_hidden_states))
                 # print(outputs.decoder_hidden_states[-1].shape)
                 # print(outputs.decoder_hidden_states[-1][:,-1,:].shape)
+                # print(outputs.decoder_hidden_states[-1][:,-1,:].sum(dim=1))
                 last_token_hidden_state = outputs.decoder_hidden_states[-1][:,-1,:]
                 next_token_scores_processed = logits_processor(
                     input_ids, 
@@ -3000,6 +3006,7 @@ class GenerationMixin:
 
             next_indices = torch.div(next_tokens, vocab_size, rounding_mode="floor")
             next_tokens = next_tokens % vocab_size
+            # print("considered tokens: ", next_tokens)
 
             # stateless
             beam_outputs = beam_scorer.process(
@@ -3015,6 +3022,7 @@ class GenerationMixin:
             beam_scores = beam_outputs["next_beam_scores"]
             beam_next_tokens = beam_outputs["next_beam_tokens"]
             beam_idx = beam_outputs["next_beam_indices"]
+            # print("selected tokens: ", beam_next_tokens, f"({beam_scores})")
 
             input_ids = torch.cat([input_ids[beam_idx, :], beam_next_tokens.unsqueeze(-1)], dim=-1)
 

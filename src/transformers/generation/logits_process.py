@@ -151,6 +151,8 @@ class NNLogitsProcessor(LogitsProcessor):
             final_hidden_state.shape[0], final_hidden_state.shape[-1]
         )#.cpu().numpy()
         vocab_idxs, distances = self.index_func(search_embeddings, self.k)
+        # print(distances.shape)
+        # print("closest vocab: ", vocab_idxs[:,0])
        
         # get logits over tokens retrieved  
         # take softmax and aggregate probabilities
@@ -164,18 +166,22 @@ class NNLogitsProcessor(LogitsProcessor):
         for seq in range(num_seqs):
             for neighbor in range(self.k):
                 distance_logits[seq, vocab_idxs[seq, neighbor]] += distances[seq, neighbor]
+        # print("closest vocab: ", torch.argmax(distance_logits, dim=1), f"({torch.max(distance_logits,dim=1).values})")
 
         # Take log of aggregated distance probabilities
         if log_softmax:
             scores = torch.exp(scores)
+        else:
+            scores = torch.nn.functional.softmax(scores,dim=1)
 
+        # print("top scorer: ", torch.argmax(scores, dim=1), f"({torch.max(scores,dim=1).values})")
         knn_scores = distance_logits.to(scores.device)
         # print(knn_scores.argmax(dim=1))
         # print(knn_scores.sum(axis=1))
         
         final_scores = self.lam * knn_scores + (1-self.lam) * scores
         # print(final_scores.sum(axis=1))
-
+        # print("best combined: ", torch.argmax(final_scores, dim=1), f"({torch.max(final_scores,dim=1).values})")
         if log_softmax:
             return torch.log(final_scores)
         # print(scores.shape, final_scores.shape)
