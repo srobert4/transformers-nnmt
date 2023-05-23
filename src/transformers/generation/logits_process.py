@@ -168,19 +168,14 @@ class NNLogitsProcessor(LogitsProcessor):
         # Take log of aggregated distance probabilities
         if log_softmax:
             scores = torch.exp(scores)
-            # print(scores.sum(axis=1))
-            # knn_scores = np.ones(scores.shape) * -10000#-float("inf")
-            # np.log(distance_logits, out = knn_scores, where = distance_logits != 0)
-        # else:
-            # knn_scores = distance_logits
-        # knn_scores = torch.from_numpy(knn_scores)
-        # knn_scores = torch.from_numpy(distance_logits)
-        # knn_scores = torch.from_numpy(distance_logits)
+
         knn_scores = distance_logits.to(scores.device)
+        # print(knn_scores.argmax(dim=1))
         # print(knn_scores.sum(axis=1))
         
         final_scores = self.lam * knn_scores + (1-self.lam) * scores
         # print(final_scores.sum(axis=1))
+
         if log_softmax:
             return torch.log(final_scores)
         # print(scores.shape, final_scores.shape)

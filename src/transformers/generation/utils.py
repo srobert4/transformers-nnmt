@@ -2949,7 +2949,10 @@ class GenerationMixin:
             next_token_scores = nn.functional.log_softmax(
                 next_token_logits, dim=-1
             )  # (batch_size * num_beams, vocab_size)
-
+            # assert torch.all(torch.isclose(
+            #     nn.functional.softmax(next_token_logits, dim=-1),
+            #     torch.exp(next_token_scores)
+            # ))
             if not outputs.decoder_hidden_states:
                 # TODO: fix this logic to only pass logits if using nn translation... or another fix here
                 next_token_scores_processed = logits_processor(input_ids, next_token_scores)
@@ -2959,9 +2962,9 @@ class GenerationMixin:
                 last_token_hidden_state = outputs.decoder_hidden_states[-1][:,-1,:]
                 next_token_scores_processed = logits_processor(
                     input_ids, 
-                    next_token_logits, 
+                    next_token_scores, 
                     final_hidden_state = last_token_hidden_state,
-                    log_softmax = False 
+                    log_softmax = True 
                 )
 
             
