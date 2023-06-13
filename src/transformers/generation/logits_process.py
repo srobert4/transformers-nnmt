@@ -180,12 +180,18 @@ class NNLogitsProcessor(LogitsProcessor):
         # print(knn_scores.sum(axis=1))
         
         final_scores = self.lam * knn_scores + (1-self.lam) * scores
+
+        # next_tokens = torch.argmax(final_scores, dim=-1) 
+        # knn_changed_outcome = torch.logical_and(
+        #     torch.argmax(knn_scores, dim=-1) == next_tokens,
+        #     torch.argmax(scores, dim=-1) != next_tokens
+        # )
         # print(final_scores.sum(axis=1))
         # print("best combined: ", torch.argmax(final_scores, dim=1), f"({torch.max(final_scores,dim=1).values})")
         if log_softmax:
             return torch.log(final_scores)
         # print(scores.shape, final_scores.shape)
-        return final_scores
+        return final_scores, knn_scores
 
 class MinLengthLogitsProcessor(LogitsProcessor):
     r"""
