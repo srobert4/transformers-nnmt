@@ -191,7 +191,7 @@ class NNLogitsProcessor(LogitsProcessor):
         if log_softmax:
             return torch.log(final_scores)
         # print(scores.shape, final_scores.shape)
-        return final_scores, knn_scores
+        return final_scores, scores, knn_scores
 
 class MinLengthLogitsProcessor(LogitsProcessor):
     r"""
