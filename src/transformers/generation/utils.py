@@ -2371,7 +2371,7 @@ class GenerationMixin:
                 # print(outputs.decoder_hidden_states[-1][:,-1,:].shape)
                 # print(outputs.decoder_hidden_states[-1][:,-1,:].sum(dim=1))
                 last_token_hidden_state = outputs.decoder_hidden_states[-1][:,-1,:]
-                next_tokens_scores, model_scores, knn_scores = logits_processor(
+                next_tokens_scores, model_scores, knn_scores, sentence_ids = logits_processor(
                     input_ids, 
                     next_token_logits, 
                     final_hidden_state = last_token_hidden_state,
@@ -2381,7 +2381,7 @@ class GenerationMixin:
             # Store scores, attentions and hidden_states when required
             if return_dict_in_generate:
                 if output_scores:
-                    scores += ((next_tokens_scores, model_scores, knn_scores),)
+                    scores += ((next_tokens_scores, model_scores, knn_scores, sentence_ids),)
                 if output_attentions:
                     decoder_attentions += (
                         (outputs.decoder_attentions,) if self.config.is_encoder_decoder else (outputs.attentions,)
