@@ -160,12 +160,12 @@ class NNLogitsProcessor(LogitsProcessor):
             distances = torch.from_numpy(distances)
         if isinstance(vocab_idxs, np.ndarray): 
             vocab_idxs = torch.from_numpy(vocab_idxs)
-        distances = -1 * distances / self.temp
-        distances = torch.nn.functional.softmax(distances, dim = 1)
+        distances_normalized = -1 * distances / self.temp
+        distances_normalized = torch.nn.functional.softmax(distances_normalized, dim = 1)
         distance_logits = torch.zeros(scores.shape).to(vocab_idxs.device)
         for seq in range(num_seqs):
             for neighbor in range(self.k):
-                distance_logits[seq, vocab_idxs[seq, neighbor]] += distances[seq, neighbor]
+                distance_logits[seq, vocab_idxs[seq, neighbor]] += distances_normalized[seq, neighbor]
         # print("closest vocab: ", torch.argmax(distance_logits, dim=1), f"({torch.max(distance_logits,dim=1).values})")
 
         # Take log of aggregated distance probabilities
