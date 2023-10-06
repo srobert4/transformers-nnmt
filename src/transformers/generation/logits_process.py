@@ -150,7 +150,7 @@ class NNLogitsProcessor(LogitsProcessor):
         search_embeddings = final_hidden_state.detach().reshape(
             final_hidden_state.shape[0], final_hidden_state.shape[-1]
         )#.cpu().numpy()
-        vocab_idxs, distances, sentence_ids = self.index_func(search_embeddings, self.k)
+        vocab_idxs, distances, sentence_ids, sentence_offsets = self.index_func(search_embeddings, self.k)
         # print(distances.shape)
         # print("closest vocab: ", vocab_idxs[:,0])
        
@@ -191,7 +191,7 @@ class NNLogitsProcessor(LogitsProcessor):
         if log_softmax:
             return torch.log(final_scores)
         # print(scores.shape, final_scores.shape)
-        return final_scores, scores, knn_scores, sentence_ids
+        return final_scores, scores, knn_scores, (vocab_idxs, distances, sentence_ids, sentence_offsets)
 
 class MinLengthLogitsProcessor(LogitsProcessor):
     r"""
